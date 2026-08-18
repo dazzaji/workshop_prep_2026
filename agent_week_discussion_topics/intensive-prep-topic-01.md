@@ -1,4 +1,4 @@
-# AgentWeek Topic 02
+# Intensive Prep Session Topic 02
 
 _____
 
