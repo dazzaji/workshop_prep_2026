@@ -1,6 +1,7 @@
 import { configFromEnv, teamByKey } from "./config.js";
 import { openDb, setSetting, getSetting, getPhase, audit } from "./db.js";
 import { revokeCredential, revokeUser } from "./store.js";
+import { assignExclusiveTeam, LiveTeamRoleApi, removeConfiguredTeams } from "./team-admin.js";
 
 function usage(): never {
   console.log(`Usage:
@@ -12,11 +13,14 @@ function usage(): never {
   npm run op -- questions-post on|off
   npm run op -- revoke-user <discordUserId>
   npm run op -- revoke-credential <credentialId>
+  npm run op -- find-member <name-or-username>
+  npm run op -- assign-team <discordUserId> <team-key>
+  npm run op -- remove-team <discordUserId>
 `);
   process.exit(2);
 }
 
-const [cmd, arg] = process.argv.slice(2);
+const [cmd, arg, arg2] = process.argv.slice(2);
 if (!cmd) usage();
 
 const config = configFromEnv();
@@ -60,6 +64,32 @@ if (cmd === "status") {
   console.log({ revoked: revokeUser(db, arg) });
 } else if (cmd === "revoke-credential" && arg) {
   console.log({ revoked: revokeCredential(db, arg) });
+} else if (cmd === "find-member" && arg) {
+  const api = new LiveTeamRoleApi(process.env.DISCORD_TOKEN ?? "");
+  const members = await api.searchMembers(config.guildId, arg);
+  console.log(
+    JSON.stringify(
+      members.map((member) => ({
+        id: member.id,
+        username: member.username,
+        global_name: member.globalName,
+        nickname: member.nick,
+        teams: config.teams.filter((team) => member.roleIds.includes(team.roleId)).map((team) => team.key),
+      })),
+      null,
+      2,
+    ),
+  );
+} else if (cmd === "assign-team" && arg && arg2) {
+  const api = new LiveTeamRoleApi(process.env.DISCORD_TOKEN ?? "");
+  const result = await assignExclusiveTeam(config, api, arg, arg2);
+  audit(db, "operator", `assign-team:${arg}:${arg2}`);
+  console.log(JSON.stringify(result, null, 2));
+} else if (cmd === "remove-team" && arg) {
+  const api = new LiveTeamRoleApi(process.env.DISCORD_TOKEN ?? "");
+  const result = await removeConfiguredTeams(config, api, arg);
+  audit(db, "operator", `remove-team:${arg}`);
+  console.log(JSON.stringify(result, null, 2));
 } else {
   usage();
 }

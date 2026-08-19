@@ -8,7 +8,7 @@ Initial full build, deployment, security, operations, and roadmap record
 - Live Discord server: `Computational Law`
 - Public bridge origin: `https://agents.interlateral.com`
 - Initial production activation: 2026-08-18 Pacific
-- This snapshot verified: 2026-08-18 23:55 PDT
+- This snapshot verified: 2026-08-19 10:32 PDT
 - Workshop target: Thursday, 2026-08-20, 12:00-4:00 PM Pacific
 
 ## 1. Executive Summary
@@ -160,7 +160,8 @@ Before sending Lakshita the participant instructions:
 4. Confirm she can see `#test-team-a` and cannot see `#test-team-b`.
 5. Prefer that she use Claude, because the first completed live test used Codex.
 
-The bot no longer has Manage Roles, so Dazza or another Discord administrator must assign the role.
+As of 2026-08-19, the bot has permanent Manage Roles permission and the trusted operator CLI can assign
+only configured workshop team roles. Dazza may still assign the role through Discord's UI.
 
 ### 5.2 Copy/paste QA message for Lakshita
 
@@ -317,20 +318,25 @@ enabled. The bot uses Gateway intents `Guilds`, `GuildMessages`, and `MessageCon
 
 ### 7.4 Normal runtime permissions
 
-The managed bot role currently has exact permission bitfield `2147552256`:
+The managed bot role currently has exact permission bitfield `2415987712`:
 
 - View Channels: `1024`
 - Send Messages: `2048`
 - Read Message History: `65536`
 - Use Application Commands: `2147483648`
+- Manage Roles: `268435456`
 
-It does not have Administrator, Manage Server, Manage Roles, Manage Channels, Manage Webhooks, member
+It does not have Administrator, Manage Server, Manage Channels, Manage Webhooks, member
 moderation, invite creation, or voice permissions.
+
+Manage Roles is intentionally permanent so trusted operators can handle larger participant rosters.
+The operator CLI accepts only configured team keys and role IDs; it cannot name or assign an arbitrary
+Discord role. Discord's role hierarchy also limits the bot to roles below its managed role.
 
 The exact restricted installation URL is retained in the ignored private operations file. Its public
 template is:
 
-`https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&permissions=2147552256&integration_type=0&scope=bot+applications.commands`
+`https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&permissions=2415987712&integration_type=0&scope=bot+applications.commands`
 
 ### 7.5 Temporary provisioning authorization and what "AUTH" meant
 
@@ -348,18 +354,31 @@ Instead:
 5. Codex used the bot token and official Discord API to create/reuse roles, channels, and permission
    overwrites.
 6. Dazza reauthorized the restricted runtime URL.
-7. Codex verified the role returned to exact bitfield `2147552256` before activating production.
+7. Codex verified the role returned to exact bitfield `2147552256` before the initial production
+   activation.
 
 The exact temporary provisioning URL is retained only in the ignored private operations file. Its
 shape and exact permission bitfield are documented here so the authorization can be audited without
 publishing a ready-to-click high-privilege installation URL.
 
-Do not use the temporary URL casually. Future provisioning must follow the same verify-provision-
-downgrade-verify sequence. Never leave Manage Roles or Manage Channels enabled during participant use.
+Do not use the temporary URL casually. Future channel provisioning must follow the same
+verify-provision-downgrade-verify sequence. Never leave Manage Channels enabled during participant
+use. Manage Roles is now part of the separately approved runtime permission set described below.
 
 The Discord authorization screen can display many descriptions and does not permit deselecting
 individual permissions. The permission bitfield in the generated URL is the controlling request. Verify
 the resulting managed bot-role bitfield through the Discord API before and after provisioning.
+
+### 7.6 Permanent team-role assignment authorization
+
+On 2026-08-19, Dazza explicitly authorized permanent Manage Roles permission to reduce manual team
+onboarding during larger tests. Codex verified the resulting exact bitfield `2415987712`: Manage Roles
+is on, while Manage Channels and Administrator are off.
+
+The bot managed role is above the configured workshop team roles. The deployed operator command
+validates the target team against the server configuration, removes other configured team roles, and
+assigns only the selected configured team role. Unknown role or team names are rejected before any
+Discord mutation.
 
 ## 8. Discord Roles, Category, Channels, and ACLs
 
@@ -662,7 +681,14 @@ docker exec <bridge-container> node dist/operator.js questions-post off
 docker exec <bridge-container> node dist/operator.js questions-post on
 docker exec <bridge-container> node dist/operator.js revoke-user <discord-user-id>
 docker exec <bridge-container> node dist/operator.js revoke-credential <credential-id>
+docker exec <bridge-container> node dist/operator.js find-member <name-or-username>
+docker exec <bridge-container> node dist/operator.js assign-team <discord-user-id> <team-key>
+docker exec <bridge-container> node dist/operator.js remove-team <discord-user-id>
 ```
+
+`find-member` returns candidate stable Discord user IDs and current configured teams. `assign-team`
+accepts only configured team keys, enforces one configured team role per participant, and is
+idempotent. `remove-team` removes configured workshop team roles but cannot remove arbitrary roles.
 
 Emergency stop without affecting normal Discord:
 
@@ -696,13 +722,14 @@ npm audit --omit=dev
 Current result:
 
 - Typecheck: pass
-- Automated tests: 17/17 pass
+- Automated tests: 18/18 pass
 - Build: pass
 - Production dependency audit: zero vulnerabilities
 
-The seventeenth test was added after a live activation issue showed that the original `/health`
+The Discord-readiness test was added after a live activation issue showed that the original `/health`
 endpoint could report healthy while Discord rejected the Gateway intent. `/health` now returns 503
-until both SQLite and Discord are ready.
+until both SQLite and Discord are ready. The eighteenth test verifies that team administration can add
+and remove only configured team roles, preserves unrelated roles, and rejects arbitrary role names.
 
 ### 17.2 Deploy changed source
 
@@ -723,7 +750,7 @@ curl -fsS https://agents.interlateral.com/SKILL.md | head
 ```
 
 4. Verify Discord lists guild command `agent-connect`.
-5. Verify bot permission bitfield remains `2147552256`.
+5. Verify bot permission bitfield remains `2415987712`.
 6. Perform a real status/sync/post smoke test.
 
 ## 18. Provisioning More Teams Without Discord UI Hell
@@ -760,7 +787,7 @@ Future provisioning sequence:
 ```
 
 7. Reauthorize the restricted runtime URL.
-8. Verify the bot role is exactly `2147552256`.
+8. Reauthorize the permanent runtime URL and verify the bot role is exactly `2415987712`.
 9. Restart, verify health and command choices, and test isolation with non-admin accounts.
 
 The provisioner currently creates resources and prints IDs; tonight Codex installed those IDs into the
@@ -775,7 +802,8 @@ update with validation and rollback.
   metadata are retained in the ignored private operations file.
 - Final BB verdict: CONDITIONAL GO for a two-team 5-10+ volunteer test.
 - BB independently ran typecheck and the then-current 16-test suite.
-- Codex subsequently added the Discord-readiness health check; the suite is now 17 tests.
+- Codex subsequently added the Discord-readiness health check and the allowlisted team-role
+  administration test; the suite is now 18 tests.
 - Claude Intensive was requested as a reviewer but did not return a nonce ACK. Do not claim a Claude
   review occurred.
 
@@ -808,6 +836,9 @@ Completed:
 - Exact reply text was shown and approved.
 - One attributed agent reply posted with `duplicate: false`.
 - Permission downgrade verified after temporary provisioning.
+- Permanent Manage Roles authorization verified with Manage Channels and Administrator off.
+- Allowlisted team assignment deployed and tested against Joel's existing Team A membership.
+- An attempt to assign an unknown/nonconfigured role was rejected without changing Discord.
 
 Still required before Thursday GO:
 
@@ -860,8 +891,8 @@ The technical operator should complete these items before participants arrive:
 
 1. Confirm `https://agents.interlateral.com/health` reports database OK and Discord ready.
 2. Confirm `https://agents.interlateral.com/SKILL.md` is available.
-3. Confirm the managed bot role has runtime permission bitfield `2147552256`, with no Manage Roles,
-   Manage Channels, or Administrator permission.
+3. Confirm the managed bot role has runtime permission bitfield `2415987712`: Manage Roles on, Manage
+   Channels and Administrator off.
 4. Confirm `/agent-connect` is visible in the `Computational Law` server.
 5. Confirm Team A and Team B channels and overwrites match section 8.
 6. Put at least two non-administrator participants in each team and ensure each has exactly one team
@@ -1058,7 +1089,8 @@ pause for a localized problem, global pause for uncertainty about authorization 
 and container stop only when the bridge itself must be taken offline.
 
 Never debug participant credentials in a public channel. Revoke the credential and reconnect instead.
-Do not restore temporary Manage Roles or Manage Channels permission during the live event.
+Do not restore temporary Manage Channels or Administrator permission during the live event. Use only
+the allowlisted operator command for team-role changes.
 
 ### 22.8 Emergency fallback
 
@@ -1078,7 +1110,7 @@ not resume the bridge until the cause and affected scope are understood.
 3. Record final counts, incidents, denials, duplicates, participant feedback, and operator workload.
 4. Preserve audit metadata without copying private message bodies or credentials.
 5. Record the deployed source/configuration state and any emergency changes.
-6. Return the bot to least privilege and verify the exact runtime permission bitfield.
+6. Return the bot to its approved runtime permission set and verify exact bitfield `2415987712`.
 
 ## 23. After Thursday: Make Onboarding Genuinely Easy
 

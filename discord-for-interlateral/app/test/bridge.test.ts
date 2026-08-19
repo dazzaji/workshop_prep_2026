@@ -11,6 +11,7 @@ import { createHttpApp } from "../src/http.ts";
 import { decideConnectPin } from "../src/authorize.ts";
 import { issueSetupCode } from "../src/store.ts";
 import { agentConnectCommand } from "../src/bot.ts";
+import { assignExclusiveTeam, removeConfiguredTeams, type DiscordMemberRecord, type TeamRoleApi } from "../src/team-admin.ts";
 import type { AppConfig } from "../src/types.ts";
 
 type Clock = { now: number };
@@ -144,6 +145,52 @@ test("slash command exposes every configured team choice", () => {
     teamOption && "choices" in teamOption ? teamOption.choices?.map((choice) => choice.value) : [],
     ["test-team-a", "test-team-b", "test-team-c"],
   );
+});
+
+class FakeTeamRoleApi implements TeamRoleApi {
+  member: DiscordMemberRecord = {
+    id: "123456789012345678",
+    username: "tester",
+    globalName: "Test User",
+    nick: null,
+    roleIds: ["role-b", "role-op"],
+  };
+  changed: Array<{ action: "add" | "remove"; roleId: string }> = [];
+
+  async getMember(): Promise<DiscordMemberRecord> {
+    return { ...this.member, roleIds: [...this.member.roleIds] };
+  }
+  async searchMembers(): Promise<DiscordMemberRecord[]> {
+    return [{ ...this.member, roleIds: [...this.member.roleIds] }];
+  }
+  async addRole(_guildId: string, _userId: string, roleId: string): Promise<void> {
+    this.changed.push({ action: "add", roleId });
+    if (!this.member.roleIds.includes(roleId)) this.member.roleIds.push(roleId);
+  }
+  async removeRole(_guildId: string, _userId: string, roleId: string): Promise<void> {
+    this.changed.push({ action: "remove", roleId });
+    this.member.roleIds = this.member.roleIds.filter((value) => value !== roleId);
+  }
+}
+
+test("team administration modifies only configured team roles", async () => {
+  const config = makeConfig();
+  const api = new FakeTeamRoleApi();
+
+  const assigned = await assignExclusiveTeam(config, api, api.member.id, "test-team-a");
+  assert.equal(assigned.changed, true);
+  assert.deepEqual(assigned.removedTeams, ["test-team-b"]);
+  assert.deepEqual(api.changed, [
+    { action: "remove", roleId: "role-b" },
+    { action: "add", roleId: "role-a" },
+  ]);
+  assert.deepEqual(api.member.roleIds.sort(), ["role-a", "role-op"]);
+  await assert.rejects(() => assignExclusiveTeam(config, api, api.member.id, "Interlateral Operator"), /Unknown team key/);
+  assert.deepEqual(api.member.roleIds.sort(), ["role-a", "role-op"]);
+
+  const removed = await removeConfiguredTeams(config, api, api.member.id);
+  assert.deepEqual(removed.removedTeams, ["test-team-a"]);
+  assert.deepEqual(api.member.roleIds, ["role-op"]);
 });
 
 test("exchange, status, sync, post happy path with attribution", async () => {

@@ -32,7 +32,8 @@ See `.env.example` for variable **names and descriptions only**. Required before
 
 - Discord application, bot token, client ID, guild ID
 - Message Content intent enabled
-- Bot permissions: View Channel, Send Messages, Read Message History, Use Application Commands
+- Bot permissions: View Channel, Send Messages, Read Message History, Use Application Commands, and
+  Manage Roles. Manage Roles is used only by the operator CLI for configured workshop team roles.
 - `test-team-a` / `test-team-b` roles and private channels
 - `PUBLIC_ORIGIN` with TLS in front of this process
 - `BRIDGE_PEPPER` and `SQLITE_PATH`
@@ -82,7 +83,14 @@ npm run op -- phase team
 npm run op -- questions-post off
 npm run op -- revoke-user <discordUserId>
 npm run op -- revoke-credential <uuid>
+npm run op -- find-member <name-or-username>
+npm run op -- assign-team <discordUserId> <team-key>
+npm run op -- remove-team <discordUserId>
 ```
+
+`assign-team` rejects unknown team keys, removes any other configured workshop team role, and assigns
+only the configured role for the requested team. It cannot name or assign an arbitrary Discord role.
+Keep the bot managed role above workshop team roles and below sensitive staff/admin roles.
 
 `phase team` is the Tuesday-evening setting. `questions-post off` keeps Thursday 12:00–14:00 read-only for agents.
 
