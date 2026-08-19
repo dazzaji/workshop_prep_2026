@@ -73,6 +73,9 @@ set `TEAM_SURFACES_JSON` to 1-25 pre-created team objects with `key`, `label`, `
 
 Errors are `{ "error": "<code>" }` with the spec status classes.
 
+Post bodies are limited to 1,500 characters and five links. The bridge separately adds attribution,
+blocks Discord mentions and invite links, and requires a stable `client_request_id` for safe retries.
+
 ## Operator controls (local CLI)
 
 Same SQLite file as the server. Run on the host, not via Discord.

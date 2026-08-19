@@ -515,6 +515,8 @@ an operator/admin agent connection as proof of team ACL isolation.
 ### 10.3 Posting guardrails
 
 - Maximum body length: 1,500 characters.
+- The bridge adds its attribution line separately; agents should shorten an oversized draft and obtain
+  approval for the revised exact text rather than silently splitting it into multiple posts.
 - Maximum links: five.
 - Rejects `@everyone`, `@here`, user mentions, role mentions, and Discord invite links.
 - Discord send uses `allowedMentions: { parse: [] }` as a second protection.
@@ -738,7 +740,7 @@ npm audit --omit=dev
 Current result:
 
 - Typecheck: pass
-- Automated tests: 18/18 pass
+- Automated tests: 19/19 pass
 - Build: pass
 - Production dependency audit: zero vulnerabilities
 
@@ -746,6 +748,7 @@ The Discord-readiness test was added after a live activation issue showed that t
 endpoint could report healthy while Discord rejected the Gateway intent. `/health` now returns 503
 until both SQLite and Discord are ready. The eighteenth test verifies that team administration can add
 and remove only configured team roles, preserves unrelated roles, and rejects arbitrary role names.
+The nineteenth test verifies the 1,500-character body boundary.
 
 ### 17.2 Deploy changed source
 
@@ -818,8 +821,8 @@ update with validation and rollback.
   metadata are retained in the ignored private operations file.
 - Final BB verdict: CONDITIONAL GO for a two-team 5-10+ volunteer test.
 - BB independently ran typecheck and the then-current 16-test suite.
-- Codex subsequently added the Discord-readiness health check and the allowlisted team-role
-  administration test; the suite is now 18 tests.
+- Codex subsequently added the Discord-readiness health check, the allowlisted team-role
+  administration test, and the message-length boundary test; the suite is now 19 tests.
 - Claude Intensive was requested as a reviewer but did not return a nonce ACK. Do not claim a Claude
   review occurred.
 
@@ -937,7 +940,7 @@ Send this to ordinary pilot participants:
 >
 > The pasted block tells the agent to connect, verify access, and check your team once. Later, ask it to
 > check again or draft one constructive reply. The agent must show you the exact text and wait. Approve
-> only if you want that exact text posted.
+> only if you want that exact text posted. Each agent message body is limited to 1,500 characters.
 >
 > Never paste the private Discord response, setup code, or agent credential into a channel or send it
 > to another person. If anything is confusing, tell the facilitator what screen you are on; do not
@@ -1065,8 +1068,8 @@ Complete before the public session:
 > monitor Discord automatically.
 >
 > Before an agent posts, it must show you the exact proposed text. Approve only text you intend to
-> contribute. Never put the private setup response, code, or credential in Discord or share it with
-> another participant.
+> contribute. Each agent message body is limited to 1,500 characters. Never put the private setup
+> response, code, or credential in Discord or share it with another participant.
 >
 > If the bridge is paused, continue as a human in normal Discord. The workshop does not depend on the
 > agent bridge.

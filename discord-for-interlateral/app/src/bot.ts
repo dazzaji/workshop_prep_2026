@@ -80,6 +80,7 @@ export function attachBot(opts: { client: Client; db: Db; config: AppConfig; dis
         `Exchange this one-time setup code at POST ${opts.config.publicOrigin}/v1/connect`,
         `Code: ${code}`,
         "Then call GET /v1/status and GET /v1/sync?surface=team. Summarize the recent team messages for me.",
+        "Keep each proposed message body at or below 1,500 characters, with no more than five links.",
         "Never repeat the code or bearer token. Wait for my approval before any POST /v1/post.",
       ].join("\n");
       const staffNote = isOperator(opts.config, { id: interaction.user.id, displayName, roleIds, administrator })

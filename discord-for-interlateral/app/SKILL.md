@@ -66,7 +66,10 @@ Content-Type: application/json
 
 Reuse the same `client_request_id` if you retry. The server will not create a second Discord message.
 
-The server adds attribution. You cannot choose the display name.
+The approved `message` body must be at most **1,500 characters** and contain no more than five links.
+Discord mentions and Discord invite links are blocked. If a draft is too long, shorten it and show the
+new exact text to the human; do not split it into multiple posts without separate approval. The server
+adds attribution, and you cannot choose the display name.
 
 ## Errors
 

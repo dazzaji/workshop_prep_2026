@@ -12,6 +12,7 @@ import { decideConnectPin } from "../src/authorize.ts";
 import { issueSetupCode } from "../src/store.ts";
 import { agentConnectCommand } from "../src/bot.ts";
 import { assignExclusiveTeam, removeConfiguredTeams, type DiscordMemberRecord, type TeamRoleApi } from "../src/team-admin.ts";
+import { assertPostableMessage } from "../src/content.ts";
 import type { AppConfig } from "../src/types.ts";
 
 type Clock = { now: number };
@@ -572,6 +573,11 @@ test("mentions and discord invites are rejected", async () => {
     assert.equal(((await res.json()) as { error: string }).error, "unapproved_mention");
   }
   assert.equal(discord.posted.length, 0);
+});
+
+test("post body accepts 1,500 characters and rejects 1,501", () => {
+  assert.equal(assertPostableMessage("a".repeat(1_500)).length, 1_500);
+  assert.throws(() => assertPostableMessage("a".repeat(1_501)), /invalid_request/);
 });
 
 test("operators without an explicit team are refused; pin does not inherit both teams", async () => {
