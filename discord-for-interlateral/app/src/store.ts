@@ -52,7 +52,7 @@ export function exchangeCode(
     | undefined;
   if (!row) throw jsonError("invalid_code", 400);
   if (row.used_at) throw jsonError("code_used", 400);
-  if (row.expires_at <= now) throw jsonError("invalid_code", 400);
+  if (row.expires_at <= now) throw jsonError("code_expired", 400);
 
   const used = db.prepare("UPDATE setup_codes SET used_at = ? WHERE code_hash = ? AND used_at IS NULL").run(now, hash);
   if (used.changes !== 1) throw jsonError("code_used", 400);

@@ -8,7 +8,7 @@ Initial full build, deployment, security, operations, and roadmap record
 - Live Discord server: `Computational Law`
 - Public bridge origin: `https://agents.interlateral.com`
 - Initial production activation: 2026-08-18 Pacific
-- This snapshot verified: 2026-08-19 10:32 PDT
+- This snapshot verified: 2026-08-19 10:49 PDT
 - Workshop target: Thursday, 2026-08-20, 12:00-4:00 PM Pacific
 
 ## 1. Executive Summary
@@ -77,7 +77,7 @@ credentials, Cloudflare tokens, or private-key material.
 ### 3.1 What V0 does
 
 - Derives a human's Discord identity from a real Discord slash-command interaction.
-- Issues an ephemeral, five-minute, one-use setup code.
+- Issues an ephemeral, twenty-minute, one-use setup code.
 - Lets the human transfer that code to their own Claude or Codex agent.
 - Exchanges the code for an eight-hour bearer credential.
 - Lets the agent check only server-defined authorized surfaces when its human asks.
@@ -116,7 +116,8 @@ item.
 
 The entire participant instruction should be:
 
-> In Discord, run `/agent-connect`. Copy the private response into your Claude or Codex agent.
+> In Discord, run `/agent-connect`, select Claude or Codex, and copy the private response into that
+> agent.
 
 That is the intended onboarding experience. The participant does not manually call bridge endpoints,
 manage a token, read this runbook, or perform the acceptance tests below. The generated private prompt
@@ -129,15 +130,17 @@ operator/engineering description, not a participant checklist.
 1. The human joins the `Computational Law` Discord server normally.
 2. An operator assigns exactly one workshop team role, such as `Test Team A`.
 3. The human runs `/agent-connect` in Discord.
-4. The human supplies an agent label and selects `Claude` or `Codex`.
+4. The human selects `Claude` or `Codex`. The agent label is optional and otherwise defaults from the
+   participant's Discord display name.
 5. An ordinary one-team participant may omit `team`; an administrator, operator, or multi-team user
    must select one explicit team.
 6. Discord returns an ephemeral response with the public skill URL and a one-use setup code.
-7. The human pastes that response into the intended agent within five minutes.
+7. The human pastes that response into the intended agent within twenty minutes.
 8. The agent fetches `https://agents.interlateral.com/SKILL.md`, exchanges the code, stores the bearer
-   privately, and calls `status`.
-9. The human explicitly asks the agent to check Team A or another allowed surface.
-10. The agent syncs, treats messages as quoted/untrusted content, summarizes, and drafts a response.
+   privately, calls `status`, performs one initial team sync authorized by the pasted prompt, and
+   summarizes recent messages.
+9. For later checks, the human explicitly asks the agent to check Team A or another allowed surface.
+10. The agent syncs, treats messages as quoted/untrusted content, summarizes, and may draft a response.
 11. The agent shows the exact proposed response to the human.
 12. Only after approval does the agent post that exact text.
 
@@ -173,23 +176,36 @@ only configured workshop team roles. Dazza may still assign the role through Dis
 >    that is not true.
 > 3. In a Discord text channel, type `/agent-connect` and select the Interlateral Workshop Bridge
 >    command.
-> 4. For `agent_name`, enter a short label such as `Lakshita Claude`.
-> 5. Select your actual runtime, Claude or Codex.
-> 6. If Discord asks for a team, select `test-team-a`. Do not select any other team.
-> 7. Submit the command. Discord will show only you an ephemeral prompt with a setup code that expires
->    after five minutes.
-> 8. Paste that entire prompt into the intended agent. Do not paste it into Discord or send it to
+> 4. Select your actual runtime, Claude or Codex. The optional agent label can be left blank.
+> 5. Leave the optional team field blank when you hold only Team A; the bridge infers it from your
+>    role. Staff or multi-team users must select an explicit team.
+> 6. Submit the command. Discord will show only you an ephemeral prompt with a setup code that expires
+>    after twenty minutes.
+> 7. Paste that entire prompt into the intended agent. Do not paste it into Discord or send it to
 >    anyone else.
-> 9. The agent should fetch the listed `SKILL.md`, connect once, and report that its human label, agent
->    label, runtime, and Team A access are correct.
-> 10. Tell the agent: `Check Team A.` It should summarize Team A and must not claim access to Team B.
-> 11. Post a normal human test message in `#test-team-a`, then tell the agent: `Check Team A again.`
-> 12. Ask the agent to draft a short constructive reply. It must show you the exact reply and wait.
-> 13. Read the exact text. Say `approve` only if you want that exact text posted.
-> 14. Confirm Discord displays a bot-authored post with an attribution line naming your Discord display
+> 8. The agent should fetch the listed `SKILL.md`, connect once, report that its human label, agent
+>    label, runtime, and Team A access are correct, and summarize Team A. It must not claim access to
+>    Team B.
+> 9. Post a normal human test message in `#test-team-a`, then tell the agent: `Check Team A again.`
+> 10. Ask the agent to draft a short constructive reply. It must show you the exact reply and wait.
+> 11. Read the exact text. Say `approve` only if you want that exact text posted.
+> 12. Confirm Discord displays a bot-authored post with an attribution line naming your Discord display
 >     name and agent runtime.
-> 15. Do not share the setup code, bearer credential, screenshots containing either secret, or internal
+> 13. Do not share the setup code, bearer credential, screenshots containing either secret, or internal
 >     IDs. Report elapsed onboarding time, confusion, errors, retries, and any operator help needed.
+
+### 5.2.1 August 19 onboarding finding and fix
+
+Joel generated two setup codes that expired unused after five minutes; his third code was exchanged in
+25 seconds. Alexis's successful code was exchanged in 63 seconds. This established that the difficult
+part was workflow discovery before exchange, not bridge processing after the agent received a clear
+prompt.
+
+The deployed fix extends setup codes to twenty minutes, makes runtime the only required command option,
+defaults the agent label, infers a sole team role, includes the initial status and team sync in the
+pasted prompt, and distinguishes `code_expired` from an unknown `invalid_code`. Role assignment remains
+an organizer operation completed before onboarding, and all posting still requires exact-text human
+approval.
 
 ### 5.3 Expected successful result
 
@@ -915,13 +931,13 @@ Send this to ordinary pilot participants:
 > We are testing an optional Interlateral bring-your-own-agent bridge. You can continue using Discord
 > normally as a human throughout the test.
 >
-> In Discord, run `/agent-connect`. Complete the short form with an agent label and whether you are
-> using Claude or Codex. If a team choice appears, select only the team assigned to you. Discord will
-> privately return one block of text. Paste that block into your chosen agent within five minutes.
+> In Discord, run `/agent-connect` and select Claude or Codex. The agent label and team are optional for
+> ordinary one-team participants. Discord will privately return one block of text. Paste that block
+> into your chosen agent within twenty minutes.
 >
-> When the agent reports that it is connected, tell it `Check my team.` Later, ask it to draft one
-> constructive team reply. The agent must show you the exact text and wait. Approve only if you want
-> that exact text posted.
+> The pasted block tells the agent to connect, verify access, and check your team once. Later, ask it to
+> check again or draft one constructive reply. The agent must show you the exact text and wait. Approve
+> only if you want that exact text posted.
 >
 > Never paste the private Discord response, setup code, or agent credential into a channel or send it
 > to another person. If anything is confusing, tell the facilitator what screen you are on; do not
@@ -941,8 +957,8 @@ agent onboarding starts.
 **12:00-12:05:** Dazza explains that the bridge is optional, ordinary Discord remains available, and
 agents act only when their humans ask and approve.
 
-**12:05-12:15:** participants run `/agent-connect`, paste the private response, and ask their agent to
-check the team. The operator records time-to-connect and interventions.
+**12:05-12:15:** participants run `/agent-connect`, select their runtime, and paste the private response.
+The prompt connects and checks the team. The operator records time-to-connect and interventions.
 
 **12:15-12:35:** each team holds a short discussion. Every connected participant asks the agent to
 draft one useful contribution, reviews it, and either approves or rejects it.
@@ -1043,9 +1059,10 @@ Complete before the public session:
 
 > Bringing an agent is optional. You may participate normally in Discord without one.
 >
-> To connect your Claude or Codex agent, run `/agent-connect` in Discord, complete the short form, and
-> paste Discord's private response into your agent within five minutes. Then tell your agent when to
-> check the workshop or your assigned team. It will not monitor Discord automatically.
+> To connect your Claude or Codex agent, run `/agent-connect` in Discord, select Claude or Codex, and
+> paste Discord's private response into your agent within twenty minutes. The prompt performs one
+> initial team check. After that, tell your agent whenever you want it to check again; it will not
+> monitor Discord automatically.
 >
 > Before an agent posts, it must show you the exact proposed text. Approve only text you intend to
 > contribute. Never put the private setup response, code, or credential in Discord or share it with
@@ -1140,13 +1157,12 @@ Immediately after Thursday:
 
 This is the fastest improvement and should precede more elaborate MCP or plugin work:
 
-1. Make `/agent-connect` a zero-required-field command for ordinary participants.
-2. Default the label to the participant's Discord display name plus `agent`; let the agent report its
-   runtime after connecting.
-3. Automatically select the only team when the participant has exactly one team role.
-4. Return one short, copyable prompt with no surrounding technical explanation.
-5. Have `SKILL.md` perform connect and status automatically, then answer only: `Connected. Tell me what
-   to check.`
+1. Consider a zero-required-field command after a reliable way to identify the actual agent runtime is
+   available. The current deployed command has only one required field: Claude or Codex.
+2. The label now defaults to the participant's Discord display name plus `agent`.
+3. The bridge now automatically selects the only team when the participant has exactly one team role.
+4. The command now returns one short copyable prompt with the setup steps inside it.
+5. The pasted prompt now performs connect, status, and one initial team sync automatically.
 6. Add `/agent-status` and `/agent-disconnect` so humans can inspect or revoke without terminal help.
 7. Let a questions-only participant connect without a preexisting team role.
 8. Add a dedicated read-only `#workshop-announcements` surface.

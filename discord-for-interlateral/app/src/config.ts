@@ -64,6 +64,7 @@ function parseTeams(): AppConfig["teams"] {
 }
 
 export function configFromEnv(overrides: Partial<AppConfig> = {}): AppConfig {
+  const setupCodeTtlMinutes = Math.min(60, Math.max(5, Number(env("SETUP_CODE_TTL_MINUTES", "20")) || 20));
   const base: AppConfig = {
     port: Number(env("PORT", "8787")) || 8787,
     publicOrigin: env("PUBLIC_ORIGIN", "http://127.0.0.1:8787").replace(/\/$/, ""),
@@ -74,7 +75,7 @@ export function configFromEnv(overrides: Partial<AppConfig> = {}): AppConfig {
     teams: parseTeams(),
     questionsChannelId: env("QUESTIONS_CHANNEL_ID", "channel-questions"),
     credentialTtlMs: (Number(env("CREDENTIAL_TTL_HOURS", "8")) || 8) * 3600_000,
-    setupCodeTtlMs: 5 * 60_000,
+    setupCodeTtlMs: setupCodeTtlMinutes * 60_000,
     defaultPhase: parsePhase(env("PHASE", "team")),
     questionsPostEnabled: env("QUESTIONS_POST_ENABLED", "false") === "true",
   };

@@ -117,6 +117,7 @@ test("health fails while Discord is not ready", async () => {
 });
 
 test("production configuration rejects placeholders and accepts complete HTTPS configuration", () => {
+  assert.equal(configFromEnv().setupCodeTtlMs, 20 * 60_000);
   assert.throws(
     () => assertProductionConfig(configFromEnv(), { token: "", clientId: "" }),
     /Unsafe production configuration/,
@@ -145,6 +146,11 @@ test("slash command exposes every configured team choice", () => {
     teamOption && "choices" in teamOption ? teamOption.choices?.map((choice) => choice.value) : [],
     ["test-team-a", "test-team-b", "test-team-c"],
   );
+  const runtimeOption = command.options?.find((option) => option.name === "runtime");
+  const agentNameOption = command.options?.find((option) => option.name === "agent_name");
+  assert.equal(runtimeOption?.required, true);
+  assert.equal(agentNameOption?.required, false);
+  assert.equal(teamOption?.required, false);
 });
 
 class FakeTeamRoleApi implements TeamRoleApi {
@@ -261,7 +267,7 @@ test("expired and reused setup codes fail", async () => {
     body: JSON.stringify({ code: stale }),
   });
   assert.equal(expired.status, 400);
-  assert.equal(((await expired.json()) as { error: string }).error, "invalid_code");
+  assert.equal(((await expired.json()) as { error: string }).error, "code_expired");
 
   clock.now = 1_000_000;
   const first = await connectAgent(

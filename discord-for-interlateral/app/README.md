@@ -50,7 +50,11 @@ npm run register-commands
 After installing the bot, `npm run discover-discord` lists its guilds, roles, and text channels so the
 operator can populate the allow list without copying IDs from participant prompts.
 
-`/agent-connect` options: `agent_name`, `runtime` (`claude`|`codex`), optional `team` (required for operators, admins, and multi-team users). Team choices come from the configured team map. The reply is ephemeral and includes the public `SKILL.md` URL plus a paste prompt.
+`/agent-connect` has one required option: `runtime` (`claude`|`codex`). `agent_name` is optional and
+defaults from the participant's Discord display name. `team` is inferred for a participant with one
+team role and is required only for operators, admins, and multi-team users. The ephemeral reply contains
+one paste block that connects, verifies status, and performs the initial team sync. Setup codes are
+one-use and default to a configurable twenty-minute lifetime.
 
 For tonight, the `TEAM_A_*` and `TEAM_B_*` variables are the simplest configuration. For Thursday,
 set `TEAM_SURFACES_JSON` to 1-25 pre-created team objects with `key`, `label`, `roleId`, and

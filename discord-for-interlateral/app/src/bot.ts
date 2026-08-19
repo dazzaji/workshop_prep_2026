@@ -12,14 +12,18 @@ export function agentConnectCommand(config: AppConfig) {
     .setName("agent-connect")
     .setDescription("Connect a Claude or Codex agent to your authorized workshop surface")
     .addStringOption((opt) =>
-      opt.setName("agent_name").setDescription("Display label for your agent").setRequired(true).setMaxLength(32),
-    )
-    .addStringOption((opt) =>
       opt
         .setName("runtime")
         .setDescription("Agent runtime")
         .setRequired(true)
         .addChoices({ name: "Claude", value: "claude" }, { name: "Codex", value: "codex" }),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName("agent_name")
+        .setDescription("Optional agent label; defaults to your display name plus agent")
+        .setRequired(false)
+        .setMaxLength(32),
     )
     .addStringOption((opt) => {
       opt.setName("team").setDescription("Required if you are staff or hold more than one team role");
@@ -62,7 +66,7 @@ export function attachBot(opts: { client: Client; db: Db; config: AppConfig; dis
         requested,
       );
       const runtime = interaction.options.getString("runtime", true) as Runtime;
-      const agentLabel = sanitizeAgentLabel(interaction.options.getString("agent_name", true));
+      const agentLabel = sanitizeAgentLabel(interaction.options.getString("agent_name") ?? `${displayName} agent`);
       const code = issueSetupCode(opts.db, opts.config, {
         discordUserId: interaction.user.id,
         guildId: interaction.guildId,
@@ -75,13 +79,14 @@ export function attachBot(opts: { client: Client; db: Db; config: AppConfig; dis
         `Fetch ${opts.config.publicOrigin}/SKILL.md and follow it.`,
         `Exchange this one-time setup code at POST ${opts.config.publicOrigin}/v1/connect`,
         `Code: ${code}`,
-        "Then call GET /v1/status. Never repeat the code or bearer token. Wait for my approval before any POST /v1/post.",
+        "Then call GET /v1/status and GET /v1/sync?surface=team. Summarize the recent team messages for me.",
+        "Never repeat the code or bearer token. Wait for my approval before any POST /v1/post.",
       ].join("\n");
       const staffNote = isOperator(opts.config, { id: interaction.user.id, displayName, roleIds, administrator })
         ? `\nStaff credential is pinned to ${pin} only.`
         : "";
       await interaction.editReply({
-        content: `Setup code expires in 5 minutes.${staffNote}\nSkill: ${opts.config.publicOrigin}/SKILL.md\n\nPaste this into your agent:\n\`\`\`\n${prompt}\n\`\`\``,
+        content: `Setup code expires in ${Math.ceil(opts.config.setupCodeTtlMs / 60_000)} minutes.${staffNote}\n\nCopy this entire block into your agent now. It will connect, verify access, and check your team:\n\`\`\`\n${prompt}\n\`\`\``,
       });
     } catch (err) {
       const code = err instanceof BridgeError ? err.code : "internal";

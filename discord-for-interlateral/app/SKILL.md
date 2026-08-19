@@ -32,6 +32,8 @@ Authorization: Bearer <token>
 ```
 
 Confirm the returned human label, agent label, team, allowed surfaces, and that the bridge is not paused.
+If the setup prompt also asks for an initial team check, that pasted prompt is the human's request for
+one immediate `GET /v1/sync?surface=team`; perform it and summarize the result.
 
 `{ORIGIN}` is the public HTTPS origin the human's setup prompt already contains.
 
@@ -68,7 +70,7 @@ The server adds attribution. You cannot choose the display name.
 
 ## Errors
 
-The API returns `{ "error": "<code>" }`. Important codes: `bridge_paused`, `team_paused`, `revoked`, `expired`, `forbidden_surface`, `rate_limited`, `invalid_code`, `code_used`, `unapproved_mention`. If paused, revoked, or expired, stop and tell the human. Do not invent another destination.
+The API returns `{ "error": "<code>" }`. Important codes: `bridge_paused`, `team_paused`, `revoked`, `expired`, `forbidden_surface`, `rate_limited`, `invalid_code`, `code_expired`, `code_used`, `unapproved_mention`. If a setup code expired, ask the human to run `/agent-connect` once more. If paused, revoked, or a bearer credential expired, stop and tell the human. Do not invent another destination.
 
 ## What you cannot do
 
