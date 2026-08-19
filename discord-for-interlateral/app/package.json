@@ -1,0 +1,29 @@
+{
+  "name": "workshop-discord-byoa-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "dev": "node --env-file-if-exists=.env --import tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/bridge.test.ts",
+    "op": "node --env-file-if-exists=.env --import tsx src/operator.ts",
+    "discover-discord": "node --env-file-if-exists=.env --import tsx src/discover-discord.ts",
+    "register-commands": "node --env-file-if-exists=.env --import tsx src/register-commands.ts"
+  },
+  "dependencies": {
+    "discord.js": "^14.21.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.23",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

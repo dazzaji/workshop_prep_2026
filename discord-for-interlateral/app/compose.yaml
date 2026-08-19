@@ -1,0 +1,17 @@
+# Local/staging run with a persistent SQLite volume.
+# Do not put secrets in this file. Use a host .env that is not committed.
+services:
+  bridge:
+    build: .
+    ports:
+      - "8787:8787"
+    env_file:
+      - .env
+    environment:
+      SQLITE_PATH: /data/bridge.sqlite
+    volumes:
+      - sqlite-data:/data
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:

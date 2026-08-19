@@ -1,0 +1,30 @@
+services:
+  bridge:
+    build: .
+    container_name: discord-byoa-bridge
+    env_file:
+      - /opt/discord-byoa/.env
+    environment:
+      NODE_ENV: production
+      SQLITE_PATH: /data/bridge.sqlite
+    expose:
+      - "8787"
+    volumes:
+      - sqlite-data:/data
+    networks:
+      - deploy-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  sqlite-data:
+
+networks:
+  deploy-net:
+    external: true
+    name: deploy_default
